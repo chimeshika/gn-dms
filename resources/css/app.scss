@@ -1,0 +1,101 @@
+@charset "UTF-8";
+
+// ---------------------------------------------------------------------------
+// GN & Public Officers Management System - custom SASS layer.
+// Compiled by Vite (sass). Keep component styles here, away from Tailwind.
+// ---------------------------------------------------------------------------
+
+$brand: #316798;
+$brand-dark: #223d57;
+$success: #16a34a;
+$danger: #dc2626;
+$warning: #d97706;
+
+@mixin btn($bg, $fg) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $fg;
+    background-color: $bg;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.15s ease;
+
+    &:hover {
+        filter: brightness(0.94);
+    }
+}
+
+.brand-gradient {
+    background: linear-gradient(135deg, $brand-dark 0%, $brand 100%);
+}
+
+.btn-primary {
+    @include btn($brand, #fff);
+}
+
+.btn-success {
+    @include btn($success, #fff);
+}
+
+.btn-danger {
+    @include btn($danger, #fff);
+}
+
+.btn-ghost {
+    @include btn(transparent, $brand-dark);
+    border: 1px solid #cbd5e1;
+}
+
+// Letter WYSIWYG editor toolbar + body
+.letter-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.5rem;
+    background-color: #f8fafc;
+
+    button {
+        border-radius: 0.375rem;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #334155;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+
+        &:hover {
+            background-color: $brand;
+            color: #fff;
+        }
+    }
+}
+
+.letter-body-editor {
+    min-height: 320px;
+    padding: 1.25rem;
+    font-family: 'Abhaya Libre', 'Noto Sans Tamil', serif;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    outline: none;
+
+    &:empty::before {
+        content: attr(data-placeholder);
+        color: #94a3b8;
+    }
+}
+
+// A4 paper preview frame
+.paper {
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(2, 32, 71, 0.15);
+    margin-inline: auto;
+    padding: 2.25rem 2.5rem;
+    min-height: 29.7cm;
+    width: 21cm;
+    max-width: 100%;
+}
