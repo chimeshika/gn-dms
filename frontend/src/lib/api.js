@@ -6,7 +6,7 @@ export class ApiError extends Error {
     this.errors = errors;
   }
 }
-export async function api(path, { method = "GET", body, signal } = {}) {
+export async function api(path, { method = "GET", body, signal } = {}, retry = true) {
   const headers = {
     Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",
@@ -34,6 +34,11 @@ export async function api(path, { method = "GET", body, signal } = {}) {
     );
   }
   const data = await response.json().catch(() => ({}));
+  if (response.status === 419 && method !== "GET" && retry) {
+    csrfToken = undefined;
+    await api("/session");
+    return api(path, { method, body, signal }, false);
+  }
   if (!response.ok) {
     if (response.status === 419) csrfToken = undefined;
     if (response.status === 401)

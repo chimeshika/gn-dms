@@ -14,6 +14,9 @@ enum DocumentType: string
     case Disciplinary = 'disciplinary';
     case Retirement = 'retirement';
     case Certificate = 'certificate';
+    case Leave = 'leave';
+    case TrainingCertificate = 'training_certificate';
+    case Commendation = 'commendation';
 
     public function label(): string
     {
@@ -26,6 +29,9 @@ enum DocumentType: string
             self::Disciplinary => 'වැරදි ක්‍රියා පිළිබඳ දැනුම්දීම (Disciplinary Notice)',
             self::Retirement => 'සේවයෙන් විශ්‍රාම ගැන්වීම',
             self::Certificate => 'සේවා සහතිකය (Service Certificate)',
+            self::Leave => 'නිවාඩු අනුමැතිය (Leave Approval)',
+            self::TrainingCertificate => 'පුහුණු පාඨමාලා සහතිකය (Training Certificate)',
+            self::Commendation => 'පැසසුම් ලිපිය (Commendation)',
         };
     }
 
@@ -39,6 +45,9 @@ enum DocumentType: string
             self::Disciplinary => EventType::Disciplinary,
             self::Retirement => EventType::Retirement,
             self::Certificate => EventType::Appointment,
+            self::Leave => EventType::Leave,
+            self::TrainingCertificate => EventType::Training,
+            self::Commendation => EventType::Commendation,
         };
     }
 

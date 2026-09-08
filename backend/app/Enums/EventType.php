@@ -10,6 +10,9 @@ enum EventType: string
     case Transfer = 'transfer';
     case Disciplinary = 'disciplinary';
     case Retirement = 'retirement';
+    case Leave = 'leave';
+    case Training = 'training';
+    case Commendation = 'commendation';
 
     public function label(): string
     {
@@ -20,6 +23,9 @@ enum EventType: string
             self::Transfer => 'Transfer',
             self::Disciplinary => 'Disciplinary',
             self::Retirement => 'Retirement',
+            self::Leave => 'Leave',
+            self::Training => 'Training',
+            self::Commendation => 'Commendation',
         };
     }
 

@@ -196,6 +196,11 @@ export function Register() {
                 ["address_line1", "Address line 1"],
                 ["address_line2", "Address line 2"],
                 ["address_line3", "Address line 3"],
+                ["spouse_name", "Spouse name"],
+                ["dependants_count", "Number of dependants", "number"],
+                ["emergency_contact_name", "Emergency contact name"],
+                ["emergency_contact_relationship", "Emergency contact relationship"],
+                ["emergency_contact_phone", "Emergency contact phone"],
               ].map(([name, title, type, required]) => (
                 <Field
                   key={name}

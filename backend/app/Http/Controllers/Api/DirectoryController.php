@@ -121,6 +121,9 @@ class DirectoryController extends Controller
                 'full_name_en' => 'required|string|max:150', 'full_name_si' => 'nullable|string|max:150', 'full_name_ta' => 'nullable|string|max:150',
                 'dob' => 'nullable|date|before:today', 'gender' => 'required|in:male,female,Male,Female', 'medium' => 'required|in:si,ta,en,Sinhala,Tamil,English',
                 'address_line1' => 'nullable|string|max:150', 'address_line2' => 'nullable|string|max:150', 'address_line3' => 'nullable|string|max:150',
+                'spouse_name' => 'nullable|string|max:150', 'dependants_count' => 'nullable|integer|min:0|max:50',
+                'emergency_contact_name' => 'nullable|string|max:150', 'emergency_contact_relationship' => 'nullable|string|max:100',
+                'emergency_contact_phone' => 'nullable|string|max:30',
                 'first_appointment_date' => 'nullable|date', 'appointment_date' => 'nullable|date', 'confirmation_date' => 'nullable|date',
                 'current_grade' => ['required', Rule::enum(OfficerGrade::class)], 'service_status' => ['required', Rule::enum(ServiceStatus::class)],
                 'confirmation_status' => 'nullable|in:pending,confirmed',
@@ -139,7 +142,7 @@ class DirectoryController extends Controller
             ],
             'documents' => [
                 'officer_id' => 'required|exists:officers,id', 'document_type' => ['required', Rule::enum(DocumentType::class)],
-                'ref_no' => 'nullable|string|max:100', 'issue_date' => 'required|date', 'file' => ($id ? 'nullable' : 'required').'|file|mimes:pdf|max:10240',
+                'ref_no' => 'nullable|string|max:100', 'issue_date' => 'required|date', 'file' => ($id ? 'nullable' : 'required').'|file|mimes:pdf,jpg,jpeg,png|max:10240',
             ],
             'service-histories' => [
                 'officer_id' => 'required|exists:officers,id', 'event_type' => ['required', Rule::enum(EventType::class)],

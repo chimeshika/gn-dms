@@ -141,7 +141,9 @@ function Editor({ resource, record, readOnly, onClose, onSaved }) {
                   {...(type === "file"
                     ? {
                         accept:
-                          resource === "documents" ? ".pdf" : ".png,.jpg,.jpeg",
+                          resource === "documents"
+                            ? ".pdf,.png,.jpg,.jpeg"
+                            : ".png,.jpg,.jpeg",
                       }
                     : {})}
                 />

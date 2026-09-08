@@ -189,9 +189,10 @@ class ReactApiTest extends TestCase
     {
         [$district, $division] = $this->location();
         $this->actingAs($this->admin());
-        $data = ['nic_no' => '901234567V', 'full_name_en' => 'Created Officer', 'gender' => 'male', 'medium' => 'en', 'current_grade' => 'grade_iii', 'service_status' => 'appointed', 'current_district_id' => $district->id, 'current_ds_division_id' => $division->id];
+        $data = ['nic_no' => '901234567V', 'full_name_en' => 'Created Officer', 'gender' => 'male', 'medium' => 'en', 'current_grade' => 'grade_iii', 'service_status' => 'appointed', 'current_district_id' => $district->id, 'current_ds_division_id' => $division->id, 'spouse_name' => 'Test Spouse', 'dependants_count' => 2, 'emergency_contact_name' => 'Emergency Contact', 'emergency_contact_relationship' => 'Sibling', 'emergency_contact_phone' => '0771234567'];
         $officer = $this->postJson('/api/records/officers', $data)->assertCreated()->json();
         $this->assertNotNull($officer['user_id']);
+        $this->assertDatabaseHas('officers', ['id' => $officer['id'], 'spouse_name' => 'Test Spouse', 'dependants_count' => 2, 'emergency_contact_phone' => '0771234567']);
         $data['full_name_en'] = 'Updated Officer';
         $this->putJson('/api/records/officers/'.$officer['id'], $data)->assertOk();
         $this->assertDatabaseHas('users', ['id' => $officer['user_id'], 'name' => 'Updated Officer']);
