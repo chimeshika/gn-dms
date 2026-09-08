@@ -1,0 +1,30 @@
+{
+  "name": "gn-dms-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "dev:all": "concurrently --names=backend,frontend --kill-others \"php ../backend/artisan serve --host=127.0.0.1\" \"vite\"",
+    "format": "prettier --write src vite.config.js index.html",
+    "format:check": "prettier --check src vite.config.js index.html"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.3.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.0.1",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.9.6",
+    "vite": "^7.0.7",
+    "vitest": "^3.2.0"
+  }
+}

@@ -14,5 +14,8 @@ trim_trailing_whitespace = false
 [*.{yml,yaml}]
 indent_size = 2
 
+[frontend/**.{js,jsx,css,json,html}]
+indent_size = 2
+
 [compose.yaml]
 indent_size = 4

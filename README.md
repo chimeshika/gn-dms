@@ -1,59 +1,125 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+﻿# GN-DMS — React frontend and Laravel backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Grama Niladhari and Public Officers Management System with a standalone React application and a Laravel JSON API.
 
-## About Laravel
+## Structure
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```text
+frontend/
+  src/
+    pages/           React screens: authentication, dashboard, records, letters
+    components/      Shared UI, navigation, forms, officer selector
+    lib/             API client, session state, data hooks, form definitions
+    App.jsx          Client-side routes
+    main.jsx         React entry point
+    styles.css       Responsive application styles
+  index.html
+  vite.config.js     React build and development API proxy
+  package.json
+  dist/              Generated production frontend (ignored by Git)
+backend/
+  app/
+    Http/Controllers/Api/  JSON API controllers
+    Http/Middleware/       Active-account guard
+    Models/                Database models
+    Services/              Access scope, letters, imports, PDF generation
+  routes/api.php           API endpoint definitions
+  routes/web.php           Registers the API with session and CSRF middleware
+  resources/views/pdf/     Server-rendered PDF templates
+  database/                Migrations, reference data, demo seeders
+  tests/                   Laravel integration tests
+  legacy/                  Previous Blade/Filament UI, inactive reference only
+  public/                  Laravel HTTP entry point
+  artisan
+  composer.json
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+React owns all active application screens, including administration. Laravel owns authentication, authorization, validation, persistence, file storage, imports, and PDF generation. Filament is no longer installed or registered. The old UI source is retained under `backend/legacy` and is not served.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Requirements
 
-## Learning Laravel
+- PHP 8.2+ and Composer. Enable the extensions required by Composer, including `pdo_sqlite` (or your database driver), `mbstring`, `dom`, `gd`, and `zip`.
+- Node.js 20.19+ or 22.12+ compatible with Vite 7 and npm.
+- Existing Sinhala/Tamil PDF layouts expect the fonts configured in `backend/config/dompdf.php` under `backend/storage/fonts`. PDF byte generation is tested; multilingual typography still needs visual review with those fonts installed.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## First-time setup
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Run from the project root:
 
-## Laravel Sponsors
+```sh
+cd backend
+composer run setup
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+This installs PHP dependencies, creates `backend/.env`, generates a key, creates a SQLite file if absent, runs migrations, installs React dependencies, and builds the frontend. For another database, create and configure `backend/.env` before setup. On an existing installation, preserve its application key and run `composer install` and `php artisan migrate` individually instead of regenerating the key.
 
-### Premium Partners
+Populate reference data and optional demo accounts:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```sh
+php artisan db:seed
+```
 
-## Contributing
+The existing `DatabaseSeeder` includes demo users from `database/seeders/UserSeeder.php`. Use it only for local development: the main demo account is `admin@gn.gov.lk` with password `password`. Review the seeders before running them on an existing database. New officer registrations remain pending until an administrator approves them.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Composer was downloaded locally for verification in this workspace. If it is not on PATH, use `php ../.tools/composer.phar` from `backend` for individual Composer commands; `.tools` is ignored and is not part of deployment.
 
-## Code of Conduct
+## Run locally
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Start Laravel from `backend`:
 
-## Security Vulnerabilities
+```sh
+php artisan serve --host=127.0.0.1 --port=8000
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Start React in another terminal from `frontend`:
 
-## License
+```sh
+npm run dev
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Open **http://127.0.0.1:5173**. Laravel listens on port 8000; it returns API responses rather than rendering the application. Vite forwards `/api` to Laravel. The optional `frontend/.env` setting `BACKEND_URL` changes that proxy target. Keep backend secrets in `backend/.env`; do not put them in frontend environment variables.
+
+After setup, `composer run dev` from `backend` starts both development servers. Enable required PHP extensions in your PHP configuration first. On the XAMPP installation used for verification, the extension flags `-d extension=zip -d extension=gd` were needed for PHP tests because those extensions were disabled by default.
+
+## Application routes
+
+- `/` — public homepage
+- `/login`, `/register` — authentication and officer registration
+- `/dashboard` — role-aware overview
+- `/officers`, `/documents`, `/service-histories` — personnel records
+- `/letters`, `/letters/batches/:id`, `/letters/:id/edit` — batches and letter editor
+- `/signatories`, `/users` — administration
+- `/admin` — redirects to the React dashboard for older bookmarks
+
+Officers see their own records. Divisional/district administrators see officers within their assigned jurisdiction. User management and record deletion require the main administrator; signatory management requires a district or main administrator. Batches belong to their creator, with main-administrator access across batches. Finalized letters are read-only and download the archived PDF.
+
+## Session authentication
+
+`GET /api/session` starts the Laravel session and returns the current user and CSRF token. React sends the token in `X-CSRF-TOKEN` for mutations, with the session cookie. Login rotates the session token; logout invalidates it. There are no browser-stored bearer tokens. The API definitions intentionally run through Laravel's `web` middleware to retain CSRF protection and sessions. Registration and login are rate-limited.
+
+This configuration uses a shared browser origin: Vite proxies in development, and the deployment web server must proxy `/api` in production. Separately hosted cross-origin deployments require an explicit cookie/CORS authentication configuration.
+
+## Validation
+
+From `frontend`:
+
+```sh
+npm test
+npm run build
+```
+
+From `backend`:
+
+```sh
+composer test
+```
+
+The backend tests use an isolated in-memory SQLite database. Coverage includes guest access, login/logout, pending registration, jurisdiction restrictions, uploads/downloads, CSV import, preservation of edited drafts, idempotent finalization, and PDF output for every document type. React tests cover navigation, login/logout, registration, role-specific controls, batch creation, and read-only finalized letters.
+
+## Deployment
+
+Build the frontend with `npm ci && npm run build` inside `frontend`. Serve `frontend/dist` as static files and configure client-side route fallback to `index.html`. Forward `/api/*` to Laravel's `backend/public/index.php` while preserving the path. Route missing API endpoints to Laravel, never to the React HTML fallback. An example Nginx configuration is in `deployment/nginx.conf.example`.
+
+Install production Composer dependencies in `backend`, configure its environment and database, run migrations, and make `backend/storage` and `backend/bootstrap/cache` writable. Keep all Laravel source, uploads, secrets, and legacy files outside the public static root. Set `APP_DEBUG=false`, the public `APP_URL`, and `SESSION_SECURE_COOKIE=true` under HTTPS.
+
+Architecture references: [React with Vite](https://react.dev/learn/build-a-react-app-from-scratch), [Vite proxy configuration](https://vite.dev/config/server-options.html#server-proxy), and [Laravel CSRF protection](https://laravel.com/docs/12.x/csrf).
