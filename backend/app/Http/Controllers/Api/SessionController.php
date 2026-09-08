@@ -10,6 +10,7 @@ use App\Models\DsDivision;
 use App\Models\GnDivision;
 use App\Models\Officer;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,10 @@ use Illuminate\Validation\ValidationException;
 
 class SessionController extends Controller
 {
+    public function __construct(private AuditLogService $audit)
+    {
+    }
+
     public function show(Request $request)
     {
         return response()->json(['user' => $request->user(), 'csrf_token' => csrf_token()]);
@@ -34,6 +39,7 @@ class SessionController extends Controller
             throw ValidationException::withMessages(['email' => 'Your account is pending verification or inactive. Contact your Divisional Secretariat.']);
         }
         $request->session()->regenerate();
+        $this->audit->record($request->user(), 'auth.login');
 
         return $this->show($request);
     }

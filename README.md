@@ -116,6 +116,14 @@ composer test
 
 The backend tests use an isolated in-memory SQLite database. Coverage includes guest access, login/logout, pending registration, jurisdiction restrictions, uploads/downloads, CSV import, preservation of edited drafts, idempotent finalization, and PDF output for every document type. React tests cover navigation, login/logout, registration, role-specific controls, batch creation, and read-only finalized letters.
 
+## Security and operations
+
+Sensitive documents and archived letter PDFs are stored on Laravel's private `local` disk and are returned only through authenticated, jurisdiction-scoped API endpoints. Do not place uploads in `backend/public` or expose the storage directory through the web server. Successful logins, officer verification, directory mutations, letter generation/editing/finalization, and deletions are recorded in `audit_logs`; passwords, tokens, and other authentication secrets are excluded.
+
+Keep `backend/.env`, `backend/vendor`, `backend/storage/logs`, `frontend/node_modules`, and `frontend/dist` out of Git. Use safe placeholders in `.env.example` and never commit application keys, credentials, certificates, or uploaded files. For production, prefer MySQL/MariaDB or PostgreSQL with regular encrypted backups of both the database and private document storage; SQLite remains supported for local development and tests.
+
+PDF production requires the Sinhala and Tamil font files configured in `backend/config/dompdf.php` and installed under `backend/storage/fonts`. Verify Sinhala/Tamil glyphs, bold text, wrapping, numbered lists, signatures, headers, footers, and multi-page output manually in a production-like environment because automated tests validate PDF generation but not visual typography.
+
 ## Deployment
 
 Build the frontend with `npm ci && npm run build` inside `frontend`. Serve `frontend/dist` as static files and configure client-side route fallback to `index.html`. Forward `/api/*` to Laravel's `backend/public/index.php` while preserving the path. Route missing API endpoints to Laravel, never to the React HTML fallback. An example Nginx configuration is in `deployment/nginx.conf.example`.

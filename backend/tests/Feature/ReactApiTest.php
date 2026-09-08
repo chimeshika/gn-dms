@@ -114,6 +114,7 @@ class ReactApiTest extends TestCase
         $document = Document::firstOrFail();
         $this->get('/api/documents/'.$document->id.'/download')->assertOk();
         $this->actingAs($this->admin(['role' => UserRole::Officer]))->get('/api/documents/'.$document->id.'/download')->assertNotFound();
+        $this->assertDatabaseHas('audit_logs', ['action' => 'documents.created', 'auditable_id' => $document->id]);
     }
 
     public function test_batch_generation_editing_and_finalization_are_idempotent(): void
@@ -139,6 +140,7 @@ class ReactApiTest extends TestCase
         $this->postJson('/api/letters/'.$letter->id.'/finalize')->assertOk();
         $this->assertDatabaseCount('documents', 1);
         $this->assertDatabaseCount('service_histories', 1);
+        $this->assertDatabaseCount('audit_logs', 3);
         $this->assertSame('grade_iii', $officer->fresh()->current_grade->value);
         $this->assertSame('confirmed', $officer->fresh()->service_status);
         $this->assertSame('appointed', ServiceHistory::first()->old_value);

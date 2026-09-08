@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\Letter;
 use App\Models\LetterBatch;
 use App\Services\AccessScope;
+use App\Services\AuditLogService;
 use App\Services\LetterService;
 use App\Services\OfficerImportService;
 use App\Services\PdfService;
@@ -20,7 +21,7 @@ use ZipArchive;
 
 class BatchController extends Controller
 {
-    public function __construct(private LetterService $letters, private PdfService $pdfs, private OfficerImportService $imports) {}
+    public function __construct(private LetterService $letters, private PdfService $pdfs, private OfficerImportService $imports, private AuditLogService $audit) {}
 
     private function authorizeBatch(Request $request, ?LetterBatch $batch = null): void
     {
@@ -116,12 +117,20 @@ class BatchController extends Controller
     {
         $this->authorizeBatch($request, $batch);
         $data = $request->validate(['officer_ids' => 'required|array|min:1|max:500', 'officer_ids.*' => 'required|integer|distinct|exists:officers,id']);
-        DB::transaction(function () use ($request, $batch, $data) {
+        $generatedIds = [];
+        DB::transaction(function () use ($request, $batch, $data, &$generatedIds) {
             foreach ($data['officer_ids'] as $id) {
                 $officer = AccessScope::officer($request->user(), $id);
+                $wasExisting = $batch->letters()->where('officer_id', $officer->id)->exists();
                 $this->letters->generateForOfficer($batch, $officer, $request->user());
+                if (! $wasExisting) {
+                    $generatedIds[] = $officer->id;
+                }
             }
         });
+        if ($generatedIds !== []) {
+            $this->audit->record($request->user(), 'letters.generated', $batch, null, ['officer_ids' => $generatedIds]);
+        }
 
         return response()->json(['message' => 'Draft letters generated.']);
     }
@@ -136,12 +145,14 @@ class BatchController extends Controller
     public function updateLetter(Request $request, Letter $letter)
     {
         $this->authorizeLetter($request, $letter, true);
+        $oldValues = $letter->getAttributes();
         $letter->update($request->validate([
             'ref_no' => 'required|string|max:100', 'subject' => 'required|string|max:255', 'body' => 'nullable|string|max:100000',
             'cc_to' => 'nullable|array|max:50', 'cc_to.*' => 'string|max:500',
             'signatory_id' => ['nullable', Rule::exists('signatories', 'id')->where('is_active', true)],
             'controlling_officer_id' => ['nullable', Rule::exists('signatories', 'id')->where('is_active', true)],
         ]));
+        $this->audit->record($request->user(), 'letter.updated', $letter, $oldValues, $letter->getAttributes());
 
         return response()->json($letter);
     }
@@ -157,11 +168,13 @@ class BatchController extends Controller
     public function finalize(Request $request, Letter $letter)
     {
         $this->authorizeLetter($request, $letter);
-        DB::transaction(function () use ($request, $letter) {
+        $finalized = false;
+        DB::transaction(function () use ($request, $letter, &$finalized) {
             $letter = Letter::lockForUpdate()->findOrFail($letter->id);
             if ($letter->status === LetterStatus::Final) {
                 return;
             }
+            $finalized = true;
             $letter->update(['pdf_path' => $this->pdfs->store($letter), 'status' => LetterStatus::Final]);
             $this->letters->applyStateChanges($letter->letterBatch, $letter->officer, $letter, $request->user());
             Document::create([
@@ -170,6 +183,11 @@ class BatchController extends Controller
                 'file_path' => $letter->pdf_path, 'generated_by' => $request->user()->id,
             ]);
         });
+
+        if ($finalized) {
+            $finalLetter = $letter->fresh();
+            $this->audit->record($request->user(), 'letter.finalized', $finalLetter, ['status' => LetterStatus::Draft->value], ['status' => LetterStatus::Final->value, 'pdf_path' => $finalLetter->pdf_path]);
+        }
 
         return response()->json(['message' => 'Letter finalized and archived.']);
     }

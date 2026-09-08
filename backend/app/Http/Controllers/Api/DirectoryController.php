@@ -18,6 +18,7 @@ use App\Models\ServiceHistory;
 use App\Models\Signatory;
 use App\Models\User;
 use App\Services\AccessScope;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -28,6 +29,10 @@ use Spatie\Permission\Models\Role;
 class DirectoryController extends Controller
 {
     private const MODELS = ['officers' => Officer::class, 'documents' => Document::class, 'service-histories' => ServiceHistory::class, 'signatories' => Signatory::class, 'users' => User::class];
+
+    public function __construct(private AuditLogService $audit)
+    {
+    }
 
     private function authorizeResource(Request $request, string $resource, bool $write = false): void
     {
@@ -109,6 +114,7 @@ class DirectoryController extends Controller
     {
         $this->authorizeResource($request, $resource, true);
         $record = $id ? $this->query($request, $resource)->findOrFail($id) : new (self::MODELS[$resource]);
+        $oldValues = $record->exists ? $record->getAttributes() : null;
         $rules = match ($resource) {
             'officers' => [
                 'nic_no' => ['required', 'string', 'max:15', Rule::unique('officers')->ignore($id), Rule::unique('users')->ignore($record->user_id)],
@@ -209,6 +215,8 @@ class DirectoryController extends Controller
             }
         });
 
+        $this->audit->record($request->user(), $id ? $resource.'.updated' : $resource.'.created', $record, $oldValues, $record->getAttributes());
+
         return response()->json($record->fresh(), $id ? 200 : 201);
     }
 
@@ -217,7 +225,10 @@ class DirectoryController extends Controller
         $this->authorizeResource($request, $resource, true);
         abort_unless($request->user()->isMainAdmin(), 403);
         abort_if($resource === 'users' && $id === $request->user()->id, 422, 'You cannot delete your own account.');
-        $this->query($request, $resource)->findOrFail($id)->delete();
+        $record = $this->query($request, $resource)->findOrFail($id);
+        $oldValues = $record->getAttributes();
+        $record->delete();
+        $this->audit->record($request->user(), $resource.'.deleted', $record, $oldValues);
 
         return response()->json(['message' => 'Record deleted.']);
     }
@@ -228,6 +239,7 @@ class DirectoryController extends Controller
         $record = AccessScope::officer($request->user(), $officer);
         abort_unless($record->user, 422, 'This officer has no linked user account.');
         $record->user->update(['status' => UserStatus::Active, 'email_verified_at' => now()]);
+        $this->audit->record($request->user(), 'officer.verified', $record, ['status' => UserStatus::PendingVerification->value], ['status' => UserStatus::Active->value]);
 
         return response()->json(['message' => 'Officer approved and activated.']);
     }
