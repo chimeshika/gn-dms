@@ -5,7 +5,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: '{{ $font }}', 'DejaVu Sans', sans-serif;
+            font-family: '{{ $font ?? "Iskoola Pota" }}', 'DejaVu Sans', sans-serif;
             font-size: 11pt;
             line-height: 1.75;
             color: #111;
@@ -46,48 +46,48 @@
 <body>
     <div class="letterhead">
         <div class="repub">ශ්‍රී ලංකා ප්‍රජාතන්ත්‍රවාදී සමාජවාදී ජනරජය</div>
-        <div class="ministry">ස්වදේශ කටයුතු අමාත්‍යාංශය</div>
-        <div class="division">ග්‍රාම නිලධාරී පාලන අංශය</div>
+        <div class="ministry">රාජ්‍ය පරිපාලන, පළාත් සභා හා පළාත් පාලන අමාත්‍යාංශය</div>
+        <div class="division">ස්වදේශ කටයුතු අංශය - ග්‍රාම නිලධාරී පාලන අංශය</div>
         <div class="system">මෙරට ග්‍රාම නිලධාරි කළමනාකරණ පද්ධතිය</div>
     </div>
 
     <table class="ref-table">
         <tr>
-            <td width="60%">ප්‍රවෘත්ති අංකය: <strong>{{ $refNo }}</strong></td>
-            <td width="40%" style="text-align:right;">දිනය: <strong>{{ $letterDate }}</strong></td>
+            <td width="60%">මාගේ අංකය: <strong>{{ $refNo ?? '' }}</strong></td>
+            <td width="40%" style="text-align:right;">දිනය: <strong>{{ $letterDate ?? '' }}</strong></td>
         </tr>
     </table>
 
     @if (empty($addressLines))
         <div class="to-block">
-            <div>{{ $officerName }},</div>
-            <div>ජා.හැ. අංකය: {{ $nicNo }}</div>
+            <div>{{ $officerName ?? '' }},</div>
+            <div>ජා.හැ. අංකය: {{ $nicNo ?? '' }}</div>
         </div>
     @else
         <div class="to-block">
-            <div>{{ $officerName }},</div>
+            <div>{{ $officerName ?? '' }},</div>
             @foreach ($addressLines as $line)
                 <div>{{ $line }}</div>
             @endforeach
-            <div>ජා.හැ. අංකය: {{ $nicNo }}</div>
+            <div>ජා.හැ. අංකය: {{ $nicNo ?? '' }}</div>
         </div>
     @endif
 
     <div class="subject">මාතෘකාව: ග්‍රාම නිලධාරී (III ශ්‍රේණිය) තනතුරට පත් කිරීම</div>
 
     <div class="body-content">
-        <p>{{ $officerName }} {{ $officerSalutation }},</p>
+        <p>{{ $officerName ?? '' }} {{ $officerSalutation ?? '' }},</p>
 
-        <p><span class="para-num">01.</span> ඔබව අමාත්‍ය මණ්ඩලයේ අනුමැතිය ලැබ {@if ($examDate)}{{ $examDate }} දින @endif පැවති ප්‍රාදේශීය ලේකම් පරීක්ෂණයේ සමත්වීම මත {{ $dsDivisionSi }} ප්‍රාදේශීය ලේකම් කොට්ඨාසයේ {{ $gnDivision }} ග්‍රාම නිලධාරී වසම සඳහා ග්‍රාම නිලධාරී (III ශ්‍රේණිය) තනතුරට {{ $letterDate }} දින සිට බලපැවැත්වෙන පරිදි පත් කර ඇත.</p>
+        <p><span class="para-num">01.</span> ඔබව අමාත්‍ය මණ්ඩලයේ අනුමැතිය ලැබ @if (!empty($examDate)){{ $examDate }} දින @endif පැවති ප්‍රාදේශීය ලේකම් පරීක්ෂණයේ සමත්වීම මත {{ $dsDivisionSi ?? '' }} ප්‍රාදේශීය ලේකම් කොට්ඨාසයේ {{ $gnDivision ?? '' }} ග්‍රාම නිලධාරී වසම සඳහා ග්‍රාම නිලධාරී (III ශ්‍රේණිය) තනතුරට {{ $letterDate ?? '' }} දින සිට බලපැවැත්වෙන පරිදි පත් කර ඇත.</p>
 
-        <p><span class="para-num">02.</span> ඔබගේ පත්කිරීම {@if ($probationEffectiveDate)}{{ $probationEffectiveDate }} දින සිට @endif වසරක පරිවාස කාලයකට යටත් වන අතර, පරිවාස කාලය තෘප්තිමත් ලෙස නිම කිරීමෙන් අනතුරුව ඔබව ස්ථිර කෙරේ.</p>
+        <p><span class="para-num">02.</span> ඔබගේ පත්කිරීම @if (!empty($probationEffectiveDate)){{ $probationEffectiveDate }} දින සිට @endif වසරක පරිවාස කාලයකට යටත් වන අතර, පරිවාස කාලය තෘප්තිමත් ලෙස නිම කිරීමෙන් අනතුරුව ඔබව ස්ථිර කෙරේ.</p>
 
-        <p><span class="para-num">03.</span> ඒ අනුව, {{ $dsDivisionSi }} ප්‍රාදේශීය ලේකම්වරයා වෙත වාර්තා කර, උපදෙස් මත රාජකාරි භාරගනු මැනවි.</p>
+        <p><span class="para-num">03.</span> ඒ අනුව, {{ $dsDivisionSi ?? '' }} ප්‍රාදේශීය ලේකම්වරයා වෙත වාර්තා කර, උපදෙස් මත රාජකාරි භාරගනු මැනවි.</p>
 
         <p><span class="para-num">04.</span> ග්‍රාම නිලධාරී සේවයේ නීති හා විධිවිධාන, රාජ්‍ය සේවා විධිවිධාන හා වරින් වර නිකුත් කරන චක්‍රලේඛ අනුව ඔබේ රාජකාරි ඉටු කළ යුතුය.</p>
 
-        @if ($cabinetAppNo)
-            <p><span class="para-num">05.</span> අමාත්‍ය මණ්ඩල අනුමැතිය — {{ $cabinetAppNo }} (දින: {{ $cabinetAppDate }}).</p>
+        @if (!empty($cabinetAppNo))
+            <p><span class="para-num">05.</span> අමාත්‍ය මණ්ඩල අනුමැතිය — {{ $cabinetAppNo }} (දින: {{ $cabinetAppDate ?? '' }}).</p>
         @endif
     </div>
 
@@ -95,14 +95,14 @@
         <div class="sig">
             <div>ස්වදේශ කටයුතු අමාත්‍යාංශයේ ලේකම් වෙනුවෙන්,</div>
             <div class="sigline"></div>
-            @if ($signatureDataUri)<img class="sigimg" src="{{ $signatureDataUri }}">@endif
-            <div class="name">{{ $signatoryName }}</div>
-            <div class="role">{{ $signatoryDesignation }}</div>
+            @if (!empty($signatureDataUri))<img class="sigimg" src="{{ $signatureDataUri }}">@endif
+            <div class="name">{{ $signatoryName ?? '' }}</div>
+            <div class="role">{{ $signatoryDesignation ?? '' }}</div>
         </div>
 
-        @if ($controllingOfficerName)
+        @if (!empty($controllingOfficerName))
             <div class="sig">
-                <div>{{ $controllingOfficerDesignation }} ලෙස අනුමත කරමින්,</div>
+                <div>{{ $controllingOfficerDesignation ?? '' }} ලෙස අනුමත කරමින්,</div>
                 <div class="sigline"></div>
                 <div class="name">{{ $controllingOfficerName }}</div>
                 <div class="role">{{ $controllingOfficerDesignation }}</div>
@@ -119,6 +119,6 @@
         </div>
     @endif
 
-    <div class="footer">පරිගණකගත ලේඛනයකි &middot; {{ $refNo }}</div>
+    <div class="footer">පරිගණකගත ලේඛනයකි &middot; {{ $refNo ?? '' }}</div>
 </body>
 </html>

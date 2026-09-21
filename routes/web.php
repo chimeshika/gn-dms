@@ -35,8 +35,13 @@ Route::middleware(['auth', 'permission:manage batches|generate letters'])->group
     Route::get('/letters/batches/{batch}/pdf', [LetterController::class, 'bulkPdf'])->name('letters.bulk.pdf');
     Route::get('/letters/{letter}/edit', [LetterController::class, 'editLetter'])->name('letters.edit');
     Route::put('/letters/{letter}', [LetterController::class, 'updateLetter'])->name('letters.update');
-    Route::delete('/letters/{letter}', [LetterController::class, 'destroy'])->name('letters.destroy');
     Route::post('/letters/{letter}/finalize', [LetterController::class, 'finalize'])->name('letters.finalize');
     Route::get('/letters/{letter}/pdf', [LetterController::class, 'pdf'])->name('letters.pdf');
     Route::get('/letters/{letter}/preview', [LetterController::class, 'previewPdf'])->name('letters.preview');
-});
+    Route::get('/letters/batch/{batch}/print', [LetterController::class, 'printBatch'])->name('letters.batch-print');
+    Route::get('/letters/batch/{batch}/print-pdf', [LetterController::class, 'printBatchPdf'])->name('letters.batch-print-pdf');
+    Route::get('/letters/{letter}/preview', [LetterController::class, 'previewPdf'])->name('letters.preview');
+    Route::get('/letters/{letter}/pdf', [LetterController::class, 'pdf'])->name('letters.pdf');
+    Route::delete('/letters/{letter}', [LetterController::class, 'destroy'])->name('letters.destroy');
+   
+    });

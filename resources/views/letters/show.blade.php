@@ -138,18 +138,28 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex flex-wrap justify-end gap-2">
-                                        <a href="{{ route('letters.edit', $letter) }}" class="btn-ghost !px-3 !py-1.5 text-xs">Edit</a>
-                                        @if ($letter->status === \App\Enums\LetterStatus::Final)
-                                            <a href="{{ route('letters.pdf', $letter) }}" target="_blank" class="btn-primary !px-3 !py-1.5 text-xs">PDF</a>
-                                        @endif
-                                        @if ($letter->status !== \App\Enums\LetterStatus::Final)
-                                            <form method="POST" action="{{ route('letters.destroy', $letter) }}" class="inline"
-                                                  onsubmit="return confirm('Delete this letter draft? This cannot be undone.')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-semibold !px-2 !py-1">Delete</button>
-                                            </form>
-                                        @endif
+                                        {{-- 1. Preview Button --}}
+                                        <a href="{{ route('letters.preview', $letter) }}" target="_blank" 
+                                           class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+                                            Preview
+                                        </a>
+
+                                        {{-- 2. Print Button --}}
+                                        <a href="{{ route('letters.pdf', $letter) }}" target="_blank" 
+                                           class="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-700">
+                                            Print
+                                        </a>
+
+                                        {{-- 3. Permanent Delete Button --}}
+                                        <form method="POST" action="{{ route('letters.destroy', $letter) }}" class="inline"
+                                              onsubmit="return confirm('මෙම ලිපිය ඩේටාබේස් එකෙන්ම සම්පූර්ණයෙන්ම ඉවත් කිරීමට ඔබට විශ්වාසද?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 hover:text-red-700">
+                                                Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

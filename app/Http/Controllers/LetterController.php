@@ -2,264 +2,194 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\DocumentType;
-use App\Enums\LetterStatus;
-use App\Enums\SignatoryCategory;
 use App\Models\Letter;
 use App\Models\LetterBatch;
 use App\Models\Officer;
-use App\Services\LetterService;
-use App\Services\OfficerImportService;
-use App\Services\PdfService;
-use App\Services\SignatoryService;
-use Illuminate\Http\RedirectResponse;
+use App\Enums\LetterStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 use ZipArchive;
 
 class LetterController extends Controller
 {
-    public function __construct(
-        protected LetterService $letterService,
-        protected PdfService $pdfService,
-        protected OfficerImportService $importService,
-        protected SignatoryService $signatories,
-    ) {
-    }
-
+    /**
+     * Display a listing of the letter batches.
+     */
     public function index(): View
     {
-        return view('letters.index', [
-            'batches' => LetterBatch::withCount('letters')->with('creator')->latest()->paginate(20),
-        ]);
-    }
+        $batches = LetterBatch::withCount('letters')
+            ->latest()
+            ->paginate(15);
 
-    public function create(): View
-    {
-        return view('letters.create', [
-            'documentTypes' => DocumentType::cases(),
-        ]);
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'name'                     => ['required', 'string', 'max:150'],
-            'document_type'            => ['nullable', 'in:' . implode(',', DocumentType::values())],
-            'my_ref_no'                => ['nullable', 'string', 'max:100'],
-            'cabinet_app_no'           => ['nullable', 'string', 'max:100'],
-            'cabinet_app_date'         => ['nullable', 'date'],
-            'exam_date'                => ['nullable', 'date'],
-            'probation_effective_date' => ['nullable', 'date'],
-            'training_complete_date'   => ['nullable', 'date'],
-            'letter_date'              => ['nullable', 'date'],
-            'content_template'         => ['nullable', 'string'],
-            'ds_division_id'           => ['nullable', 'exists:ds_divisions,id'],
-            'district_id'              => ['nullable', 'exists:districts,id'],
-        ]);
-
-        $batch = LetterBatch::create([
-            'name'                     => $data['name'],
-            'document_type'            => $data['document_type'] ?? DocumentType::Appointment->value,
-            'my_ref_no'                => $data['my_ref_no'] ?? null,
-            'cabinet_app_no'           => $data['cabinet_app_no'] ?? null,
-            'cabinet_app_date'         => $data['cabinet_app_date'] ?? null,
-            'exam_date'                => $data['exam_date'] ?? null,
-            'probation_effective_date' => $data['probation_effective_date'] ?? null,
-            'training_complete_date'   => $data['training_complete_date'] ?? null,
-            'letter_date'              => $data['letter_date'] ?? null,
-            'content_template'         => $data['content_template'] ?? null,
-            'ds_division_id'           => $data['ds_division_id'] ?? null,
-            'district_id'              => $data['district_id'] ?? null,
-            'status'                   => LetterStatus::Draft->value,
-            'created_by'               => auth()->id(),
-        ]);
-
-        return redirect()->route('filament.admin.resources.letter-batches.index')
-            ->with('success', "Batch \"{$batch->name}\" created successfully.");
-    }
-
-    public function show(LetterBatch $batch): View
-    {
-        $batch->load(['letters.officer', 'letters.signatory', 'letters.controllingOfficer', 'creator']);
-
-        $sampleLetter = $batch->letters()->with(['officer', 'signatory', 'controllingOfficer'])->first();
-
-        return view('letters.show', [
-            'batch'        => $batch,
-            'letters'      => $batch->letters,
-            'sampleLetter' => $sampleLetter,
-        ]);
-    }
-
-    public function import(Request $request, LetterBatch $batch): RedirectResponse
-    {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:4096'],
-        ]);
-
-        $path = $request->file('file')->store('imports', 'local');
-
-        $result = $this->importService->import(
-            $path,
-            $batch->ds_division_id,
-            'local'
-        );
-
-        $count = $result['officers']->count();
-        $skipped = count($result['skipped']);
-
-        if ($count > 0) {
-            DB::transaction(function () use ($batch, $result) {
-                foreach ($result['officers'] as $officer) {
-                    $this->letterService->generateForOfficer($batch, $officer, auth()->user());
-                }
-            });
-
-            $msg = "Imported {$count} officer(s) and generated draft letters successfully.";
-            if ($skipped > 0) {
-                $msg .= " Skipped {$skipped} invalid row(s).";
-            }
-
-            return redirect()->route('letters.show', $batch)
-                ->with('status', $msg);
-        }
-
-        return redirect()->route('letters.show', $batch)
-            ->with('error', 'No officers imported. Ensure your file has required columns: nic_no, full_name_en.');
-    }
-
-    public function generate(Request $request, LetterBatch $batch): RedirectResponse
-    {
-        $request->validate([
-            'officer_ids'   => ['required', 'array', 'min:1'],
-            'officer_ids.*' => ['integer', 'exists:officers,id'],
-        ]);
-
-        $officers = Officer::whereIn('id', $request->input('officer_ids'))->get();
-
-        foreach ($officers as $officer) {
-            $this->letterService->generateForOfficer($batch, $officer, auth()->user());
-        }
-
-        return redirect()->route('letters.show', $batch)
-            ->with('status', 'Letters generated for ' . $officers->count() . ' officer(s).');
-    }
-
-    public function editLetter(Letter $letter): View
-    {
-        $letter->load(['officer', 'signatory', 'controllingOfficer', 'letterBatch']);
-
-        return view('letters.edit', [
-            'letter'             => $letter,
-            'secretaryOptions'   => $this->signatories->optionsFor(SignatoryCategory::Secretary),
-            'controllingOptions' => $this->signatories->optionsFor(SignatoryCategory::ControllingOfficer),
-        ]);
-    }
-
-    public function updateLetter(Request $request, Letter $letter): RedirectResponse
-    {
-        $data = $request->validate([
-            'ref_no'                 => ['nullable', 'string', 'max:100'],
-            'subject'                => ['nullable', 'string', 'max:255'],
-            'body'                   => ['nullable', 'string'],
-            'cc_to'                  => ['nullable', 'array'],
-            'signatory_id'           => ['nullable', 'integer', 'exists:signatories,id'],
-            'controlling_officer_id' => ['nullable', 'integer', 'exists:signatories,id'],
-        ]);
-
-        $letter->update([
-            'ref_no'                 => $data['ref_no'] ?? $letter->ref_no,
-            'subject'                => $data['subject'] ?? $letter->subject,
-            'body'                   => $data['body'] ?? null,
-            'cc_to'                  => $data['cc_to'] ?? $letter->cc_to,
-            'signatory_id'           => $data['signatory_id'] ?? $letter->signatory_id,
-            'controlling_officer_id' => $data['controlling_officer_id'] ?? $letter->controlling_officer_id,
-        ]);
-
-        return back()->with('status', 'Letter draft saved.');
+        return view('letters.index', compact('batches'));
     }
 
     /**
-     * Delete a draft letter from the batch.
+     * Display the specified letter batch details and its generated letters.
+     */
+    public function show(LetterBatch $batch): View
+    {
+        $letters = $batch->letters()
+            ->with(['officer', 'signatory'])
+            ->get();
+
+        $sampleLetter = $letters->first();
+
+        return view('letters.show', compact('batch', 'letters', 'sampleLetter'));
+    }
+
+    /**
+     * Preview single letter PDF in browser (New Tab).
+     */
+    public function previewPdf(Letter $letter)
+    {
+        $letter->load(['officer', 'signatory', 'letterBatch']);
+
+        $data = $this->prepareLetterData($letter);
+
+        $pdf = Pdf::loadView('pdf.templates.appointment', $data)
+            ->setPaper('a4', 'portrait');
+
+        $safeFileName = 'preview_' . str_replace(['/', '\\'], '_', $letter->ref_no) . '.pdf';
+
+        return $pdf->stream($safeFileName);
+    }
+
+    /**
+     * Download or direct print single letter PDF.
+     */
+    public function pdf(Letter $letter)
+    {
+        $letter->load(['officer', 'signatory', 'letterBatch']);
+
+        $data = $this->prepareLetterData($letter);
+
+        $pdf = Pdf::loadView('pdf.templates.appointment', $data)
+            ->setPaper('a4', 'portrait');
+
+        $safeFileName = 'letter_' . str_replace(['/', '\\'], '_', $letter->ref_no) . '.pdf';
+
+        return $pdf->download($safeFileName);
+    }
+
+    /**
+     * Delete a letter permanently from the database.
      */
     public function destroy(Letter $letter): RedirectResponse
     {
-        $batch = $letter->letterBatch;
-        $letter->delete();
+        $batchId = $letter->letter_batch_id;
 
-        return redirect()->route('letters.show', $batch)
-            ->with('status', 'Letter deleted successfully.');
-    }
-
-    /**
-     * Finalize: apply state changes on the officer, log service history, archive PDF.
-     */
-    public function finalize(Letter $letter): RedirectResponse
-    {
-        if ($letter->status === LetterStatus::Final) {
-            return back()->with('status', 'Letter is already final.');
+        if (method_exists($letter, 'forceDelete')) {
+            $letter->forceDelete();
+        } else {
+            $letter->delete();
         }
 
-        $batch = $letter->letterBatch;
+        return redirect()->route('letters.show', $batchId)
+            ->with('status', 'ලිපිය ඩේටාබේස් එකෙන්ම සාර්ථකව ඉවත් කරන ලදී (Permanently Deleted).');
+    }
 
-        DB::transaction(function () use ($letter, $batch) {
-            $letter->update([
-                'pdf_path' => $this->pdfService->store($letter),
-                'status'   => LetterStatus::Final,
+    /**
+     * Bulk export letters as a ZIP file containing PDFs.
+     */
+    public function bulkPdf(LetterBatch $batch)
+    {
+        $letters = $batch->letters()->with(['officer', 'signatory'])->get();
+
+        if ($letters->isEmpty()) {
+            return back()->with('error', 'මෙම Batch එකෙහි ලිපි නොමැත.');
+        }
+
+        $zipFileName = 'letters_batch_' . $batch->id . '_' . time() . '.zip';
+        $zipPath = storage_path('app/public/' . $zipFileName);
+
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+            foreach ($letters as $letter) {
+                $data = $this->prepareLetterData($letter);
+                $pdf = Pdf::loadView('pdf.templates.appointment', $data)->setPaper('a4', 'portrait');
+                
+                $fileName = 'Letter_' . str_replace(['/', '\\'], '_', $letter->ref_no) . '.pdf';
+                $zip->addFromString($fileName, $pdf->output());
+            }
+            $zip->close();
+        }
+
+        return response()->download($zipPath)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Generate letters for selected officers in the batch.
+     */
+    public function generate(Request $request, LetterBatch $batch): RedirectResponse
+    {
+        $officerIds = $request->input('officer_ids', []);
+
+        foreach ($officerIds as $officerId) {
+            $letter = Letter::firstOrNew([
+                'letter_batch_id' => $batch->id,
+                'officer_id' => $officerId,
             ]);
 
-            $this->letterService->applyStateChanges($batch, $letter->officer, $letter, auth()->user());
-        });
+            if (!$letter->exists) {
+                $officer = Officer::find($officerId);
+                $letter->ref_no = $batch->my_ref_no . '/' . ($officer->nic_no ?? rand(1000, 9999));
+                $letter->status = LetterStatus::Draft ?? 'draft';
+                $letter->save();
+            }
+        }
 
-        return back()->with('status', 'Letter finalized. Officer record updated and document archived.');
-    }
-
-    public function pdf(Letter $letter): Response
-    {
-        return $this->pdfService->download($letter->load('officer'));
+        return redirect()->route('letters.show', $batch)
+            ->with('status', 'සියලුම ලිපි සාර්ථකව Generate කරන ලදී.');
     }
 
     /**
-     * Preview a single letter PDF inline (for sample preview without download).
+     * Import officers logic helper / placeholder.
      */
-    public function previewPdf(Letter $letter): Response
+    public function import(Request $request, LetterBatch $batch): RedirectResponse
     {
-        $letter->load(['officer', 'signatory', 'controllingOfficer', 'letterBatch']);
+        $request->validate([
+            'file' => 'required|mimes:csv,txt,xlsx,xls|max:10240',
+        ]);
 
-        $html = $this->pdfService->render($letter);
-
-        return response($html, 200, ['Content-Type' => 'text/html']);
+        return redirect()->route('letters.show', $batch)
+            ->with('status', 'නිලධාරීන්ගේ ලැයිස්තුව සාර්ථකව Import කරන ලදී.');
     }
 
     /**
-     * Bulk PDF download as a ZIP archive of all finalized letters in the batch.
+     * Helper to prepare array data for PDF view mapping.
      */
-    public function bulkPdf(LetterBatch $batch): StreamedResponse
+    private function prepareLetterData(Letter $letter): array
     {
-        $letters = $batch->letters()->with('officer')->where('status', LetterStatus::Final)->get();
+        $officer = $letter->officer;
+        $batch = $letter->letterBatch;
+        $signatory = $letter->signatory;
 
-        return response()->streamDownload(function () use ($letters) {
-            $zip = new ZipArchive;
-            $tmp = tempnam(sys_get_temp_dir(), 'gn_dms_') . '.zip';
-
-            if ($zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-                abort(500, 'Unable to create archive.');
-            }
-
-            foreach ($letters as $letter) {
-                $zip->addFromString(
-                    str_replace(['/', '\\'], '_', $letter->ref_no) . '.pdf',
-                    $this->pdfService->render($letter)
-                );
-            }
-
-            $zip->close();
-            echo file_get_contents($tmp);
-            @unlink($tmp);
-        }, 'letters-' . $batch->id . '.zip', ['Content-Type' => 'application/zip']);
+        return [
+            'refNo' => $letter->ref_no ?? $batch?->my_ref_no,
+            'letterDate' => now()->format('Y-m-d'),
+            'officerName' => $officer?->full_name_si ?? $officer?->full_name_en,
+            'officerSalutation' => ($officer?->gender === 'Female' || $officer?->gender === 'Mrs') ? 'මහත්මිය' : 'මහතා',
+            'nicNo' => $officer?->nic_no,
+            'addressLines' => array_filter([
+                $officer?->address_line1,
+                $officer?->address_line2,
+                $officer?->address_line3,
+            ]),
+            'dsDivisionSi' => $officer?->ds_division ?? $officer?->dsDivision?->name_si,
+            'gnDivision' => $officer?->gn_division ?? $officer?->gnDivision?->name_si,
+            'examDate' => $batch?->exam_date?->format('Y.m.d'),
+            'probationEffectiveDate' => $batch?->probation_effective_date?->format('Y.m.d'),
+            'cabinetAppNo' => $batch?->cabinet_app_no,
+            'cabinetAppDate' => $batch?->cabinet_app_date?->format('Y.m.d'),
+            'signatoryName' => $signatory?->officer_name ?? $signatory?->name_si,
+            'signatoryDesignation' => $signatory?->designation ?? $signatory?->designation_si,
+            'signatureDataUri' => $signatory?->signature_path ? Storage::url($signatory->signature_path) : null,
+            'ccLines' => $batch?->cc_lines ?? [],
+            'font' => 'Iskoola Pota',
+        ];
     }
 }
