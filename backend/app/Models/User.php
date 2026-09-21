@@ -82,6 +82,11 @@ class User extends Authenticatable
         return $this->role === UserRole::MainAdmin;
     }
 
+    public function isMinistryHead(): bool
+    {
+        return $this->role === UserRole::MinistryHead;
+    }
+
     public function isDistrictAdmin(): bool
     {
         return $this->role === UserRole::DistrictAdmin;

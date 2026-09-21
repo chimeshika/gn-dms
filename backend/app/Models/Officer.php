@@ -18,6 +18,7 @@ class Officer extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'dependents' => 'array',
         'dob'                    => 'date',
         'first_appointment_date' => 'date',
         'current_grade'          => OfficerGrade::class,

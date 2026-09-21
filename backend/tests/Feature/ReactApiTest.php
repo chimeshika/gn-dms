@@ -47,6 +47,47 @@ class ReactApiTest extends TestCase
         return [$district, $division];
     }
 
+    public function test_workspace_analytics_profiles_exports_and_audit_enforce_scope(): void
+    {
+        [$district, $division] = $this->location();
+        $user = $this->admin(['role' => UserRole::DivisionalAdmin, 'district_id' => $district->id, 'ds_division_id' => $division->id]);
+        $officerUser = $this->admin(['role' => UserRole::Officer]);
+        $mine = $this->officer(['user_id' => $officerUser->id, 'current_district_id' => $district->id, 'current_ds_division_id' => $division->id, 'designation' => 'Grama Niladhari']);
+        $other = $this->officer(['full_name_en' => 'Outside region']);
+        $this->actingAs($user)->getJson('/api/analytics')->assertOk()->assertJsonPath('total_officers', 1)->assertJsonPath('active_officers', 1)->assertJsonPath('districts.0.name', $district->name_en);
+        $this->getJson('/api/officers/'.$mine->id)->assertOk()->assertJsonPath('id', $mine->id);
+        $this->getJson('/api/officers/'.$other->id)->assertNotFound();
+        $this->getJson('/api/audit-logs')->assertForbidden();
+        $this->getJson('/api/records/officers?designation=Unknown')->assertJsonPath('total', 0);
+        $this->get('/api/records/officers?export=xlsx')->assertOk()->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $this->get('/api/analytics?export=pdf')->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->actingAs($this->admin())->getJson('/api/audit-logs')->assertOk();
+    }
+
+    public function test_extended_officer_fields_and_service_corrections_are_preserved(): void
+    {
+        [$district, $division] = $this->location();
+        $officer = $this->officer(['current_district_id' => $district->id, 'current_ds_division_id' => $division->id]);
+        $body = ['nic_no' => $officer->nic_no, 'full_name_en' => $officer->full_name_en, 'gender' => 'male', 'medium' => 'en', 'current_grade' => 'grade_ii', 'service_status' => 'appointed', 'current_district_id' => $district->id, 'current_ds_division_id' => $division->id, 'designation' => 'Grama Niladhari', 'contact_email' => 'contact@example.test', 'dependents' => [['name' => 'Child', 'relationship' => 'Daughter', 'dob' => '2015-01-01']]];
+        $this->actingAs($this->admin())->putJson('/api/records/officers/'.$officer->id, $body)->assertOk()->assertJsonPath('dependents.0.name', 'Child');
+        $this->assertDatabaseHas('service_histories', ['officer_id' => $officer->id, 'event_type' => 'correction', 'old_value' => 'grade_iii', 'new_value' => 'grade_ii']);
+        $this->putJson('/api/records/officers/'.$officer->id, $body)->assertOk();
+        $this->assertSame(1, ServiceHistory::where('officer_id', $officer->id)->where('old_value', 'grade_iii')->count());
+    }
+
+    public function test_ministry_head_is_read_only_and_cannot_manage_letters_or_users(): void
+    {
+        $this->officer();
+        $this->actingAs($this->admin(['role' => UserRole::MinistryHead]));
+        $this->getJson('/api/records/officers')->assertOk()->assertJsonPath('total', 1);
+        $this->getJson('/api/analytics')->assertOk();
+        $this->postJson('/api/records/officers', [])->assertForbidden();
+        $this->getJson('/api/records/users')->assertForbidden();
+        $this->getJson('/api/records/documents')->assertForbidden();
+        $this->getJson('/api/batches')->assertForbidden();
+        $this->getJson('/api/audit-logs')->assertForbidden();
+    }
+
     public function test_guest_session_and_protected_routes_return_json(): void
     {
         $this->getJson('/api/session')->assertOk()->assertJsonPath('user', null)->assertJsonStructure(['csrf_token']);

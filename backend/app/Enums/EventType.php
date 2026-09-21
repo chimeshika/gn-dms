@@ -13,6 +13,7 @@ enum EventType: string
     case Leave = 'leave';
     case Training = 'training';
     case Commendation = 'commendation';
+    case Correction = 'correction';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum EventType: string
             self::Leave => 'Leave',
             self::Training => 'Training',
             self::Commendation => 'Commendation',
+            self::Correction => 'Profile correction',
         };
     }
 

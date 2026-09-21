@@ -230,7 +230,7 @@ export function BatchDetail() {
   if (!batch) return <Alert error={loadError} />;
   return (
     <>
-      <Link className="back-link" to="/letters">
+      <Link className="back-link" to="/letters/batches">
         ← Letter batches
       </Link>
       <Heading

@@ -1,17 +1,18 @@
+import Brand from "../components/Brand";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
 import { useApi } from "../lib/hooks";
+import { LanguageSelect } from "../lib/i18n";
+import Icon from "../components/Icon";
 import { Alert, Field } from "../components/UI";
 
 export function Home() {
   return (
     <div className="public-page">
       <header className="public-header">
-        <Link className="brand" to="/">
-          <span className="brand-mark">GN</span>GN-DMS
-        </Link>
+        <Brand />
         <Link className="button secondary" to="/login">
           Sign in
         </Link>
@@ -66,6 +67,8 @@ export function Home() {
 }
 export function Login() {
   const { login } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [help, setHelp] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [values, setValues] = useState({
@@ -89,48 +92,116 @@ export function Login() {
     }
   };
   return (
-    <div className="auth-page">
-      <Link className="back-link" to="/">
-        ← Back to GN-DMS
-      </Link>
-      <section className="auth-card">
-        <span className="brand-mark">GN</span>
-        <p className="eyebrow">YOUR OFFICER WORKSPACE</p>
-        <h1>Welcome back</h1>
-        <p className="muted">
-          Sign in to access your records and correspondence.
+    <div className="login-page">
+      <aside className="login-story">
+        <Brand large />
+        <h2>
+          Stronger Public Service
+          <br />
+          for a Brighter Sri Lanka
+        </h2>
+        <p>
+          Empowering government officers with efficient management, transparent
+          processes and better services for our people.
         </p>
-        <Alert error={error} />
-        <form onSubmit={submit}>
-          <Field
-            name="email"
-            type="email"
-            required
-            autoComplete="username"
-            value={values.email}
-            onChange={(email) => setValues({ ...values, email })}
-          />
-          <Field
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={values.password}
-            onChange={(password) => setValues({ ...values, password })}
-          />
-          <Field
-            name="remember"
-            title="Remember me"
-            type="checkbox"
-            value={values.remember}
-            onChange={(remember) => setValues({ ...values, remember })}
-          />
-          <button disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-        </form>
-        <p className="muted">
-          New officer? <Link to="/register">Register here</Link>
-        </p>
-      </section>
+        <div className="service-values">
+          {[
+            ["officers", "People Centric"],
+            ["documents", "Transparent Administration"],
+            ["reports", "Efficient Operations"],
+            ["shield", "A Better Sri Lanka"],
+          ].map(([icon, title]) => (
+            <div key={icon}>
+              <Icon name={icon} size={30} />
+              <span>{title}</span>
+            </div>
+          ))}
+        </div>
+        <div className="landscape" aria-hidden="true">
+          <div className="rock" />
+          <div className="hills" />
+        </div>
+        <footer>People | Service | Sri Lanka</footer>
+      </aside>
+      <div className="login-main">
+        <div className="login-language">
+          <LanguageSelect />
+        </div>
+        <section className="auth-card">
+          <h1>Welcome to GN-POMS</h1>
+          <p className="login-intro">Sign in to GN-POMS</p>
+          <Alert error={error} />
+          <form onSubmit={submit}>
+            <Field
+              name="email"
+              title="Email"
+              type="email"
+              required
+              autoComplete="username"
+              value={values.email}
+              onChange={(email) => setValues({ ...values, email })}
+            />
+            <div className="password-field">
+              <Field
+                name="password"
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                value={values.password}
+                onChange={(password) => setValues({ ...values, password })}
+              />
+              <button
+                className="link-button"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+            <div className="section-heading">
+              <Field
+                name="remember"
+                title="Remember me"
+                type="checkbox"
+                value={values.remember}
+                onChange={(remember) => setValues({ ...values, remember })}
+              />
+              <button
+                className="link-button"
+                type="button"
+                onClick={() => setHelp(!help)}
+              >
+                Forgot password?
+              </button>
+            </div>
+            {help && (
+              <p role="status" className="notice">
+                Contact your system administrator to reset your password.
+              </p>
+            )}
+            <button className="signin-button" disabled={busy}>
+              {busy ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+          <div className="mfa-notice">
+            <Icon name="shield" size={30} />
+            <div>
+              <strong>Administrator verification</strong>
+              <p>
+                Sign in with your approved account. TOTP verification is not yet
+                enabled for this installation.
+              </p>
+            </div>
+          </div>
+          <Link to="/register">Register as an officer</Link>
+        </section>
+        <footer>
+          GN-POMS | Government officer administration
+          <br />
+          Need help? Contact your system administrator.
+        </footer>
+      </div>
     </div>
   );
 }
@@ -168,7 +239,7 @@ export function Register() {
   return (
     <div className="public-page registration">
       <Link className="back-link" to="/">
-        ← Back to GN-DMS
+        ← Back to GN-POMS
       </Link>
       <section className="panel">
         <p className="eyebrow">JOIN THE OFFICER PORTAL</p>
@@ -199,7 +270,10 @@ export function Register() {
                 ["spouse_name", "Spouse name"],
                 ["dependants_count", "Number of dependants", "number"],
                 ["emergency_contact_name", "Emergency contact name"],
-                ["emergency_contact_relationship", "Emergency contact relationship"],
+                [
+                  "emergency_contact_relationship",
+                  "Emergency contact relationship",
+                ],
                 ["emergency_contact_phone", "Emergency contact phone"],
               ].map(([name, title, type, required]) => (
                 <Field

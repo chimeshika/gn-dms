@@ -1,3 +1,5 @@
+import { canManage } from "../lib/permissions";
+import { Stats, Analytics } from "./Reports";
 import { Link } from "react-router-dom";
 import { useApi, date, label } from "../lib/hooks";
 import { useAuth } from "../lib/auth";
@@ -5,6 +7,7 @@ import { Alert, Badge, Heading, Loading } from "../components/UI";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { data: analytics, error: analyticsError } = useApi("/analytics");
   const { data, loading, error } = useApi("/dashboard");
   if (loading) return <Loading />;
   return (
@@ -16,19 +19,28 @@ export default function Dashboard() {
       <Alert error={error} />
       {data && (
         <>
-          <div className="stats">
-            {[
-              ["Officers", data.total_officers],
-              ["Awaiting verification", data.pending_officers],
-              ["Documents", data.documents],
-              ["Confirmed officers", data.confirmed_officers],
-            ].map(([title, value]) => (
-              <article className="panel stat" key={title}>
-                <p className="muted">{title}</p>
-                <strong>{value}</strong>
-              </article>
-            ))}
-          </div>
+          <Alert error={analyticsError} />
+          {analytics && <Stats data={analytics} />}
+          {canManage(user) && (
+            <div className="quick-actions">
+              <div>
+                <h2>Quick Actions</h2>
+                <p className="muted">Common tasks for system administration</p>
+              </div>
+              <div className="actions">
+                <Link className="button" to="/officers/create">
+                  + Add Officer
+                </Link>
+                <Link className="button teal" to="/documents/upload">
+                  Upload Document
+                </Link>
+                <Link className="button secondary" to="/letters/generate">
+                  Generate Letter
+                </Link>
+              </div>
+            </div>
+          )}
+          {analytics && <Analytics data={analytics} />}
           {data.profile && (
             <section className="panel">
               <h2>My officer record</h2>
@@ -60,19 +72,31 @@ export default function Dashboard() {
             {!data.recent_history.length ? (
               <p className="empty">No service events recorded yet.</p>
             ) : (
-              <div className="timeline">
-                {data.recent_history.map((event) => (
-                  <article key={event.id}>
-                    <span className="timeline-dot" />
-                    <div>
-                      <strong>{event.officer?.full_name_en}</strong>
-                      <p>
-                        {label(event.event_type)} · {event.description}
-                      </p>
-                      <small>{date(event.effective_date)}</small>
-                    </div>
-                  </article>
-                ))}
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Officer</th>
+                      <th>Event</th>
+                      <th>Description</th>
+                      <th>Reference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.recent_history.map((event) => (
+                      <tr key={event.id}>
+                        <td>{date(event.effective_date)}</td>
+                        <td>{event.officer?.full_name_en}</td>
+                        <td>
+                          <Badge value={event.event_type} />
+                        </td>
+                        <td>{event.description}</td>
+                        <td>{event.ref_no || "Not recorded"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>

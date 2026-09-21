@@ -6,7 +6,11 @@ export class ApiError extends Error {
     this.errors = errors;
   }
 }
-export async function api(path, { method = "GET", body, signal } = {}, retry = true) {
+export async function api(
+  path,
+  { method = "GET", body, signal } = {},
+  retry = true,
+) {
   const headers = {
     Accept: "application/json",
     "X-Requested-With": "XMLHttpRequest",

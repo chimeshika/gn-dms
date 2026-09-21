@@ -8,6 +8,7 @@ enum UserRole: string
     case DivisionalAdmin = 'divisional_admin';
     case DistrictAdmin = 'district_admin';
     case MainAdmin = 'main_admin';
+    case MinistryHead = 'ministry_head';
 
     public function spatieRole(): string
     {
@@ -16,16 +17,18 @@ enum UserRole: string
             self::DistrictAdmin => 'district_admin',
             self::DivisionalAdmin => 'divisional_admin',
             self::Officer => 'officer',
+            self::MinistryHead => 'ministry_head',
         };
     }
 
     public function label(): string
     {
         return match ($this) {
-            self::MainAdmin => 'Main Admin',
+            self::MainAdmin => 'Super Admin',
             self::DistrictAdmin => 'District Admin',
             self::DivisionalAdmin => 'Divisional Admin',
             self::Officer => 'Officer',
+            self::MinistryHead => 'Ministry Head',
         };
     }
 }

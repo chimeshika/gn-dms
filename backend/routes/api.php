@@ -14,6 +14,10 @@ Route::prefix('api')->group(function () {
     Route::post('/logout', [SessionController::class, 'logout'])->middleware('auth');
 
     Route::middleware(['auth', 'active'])->group(function () {
+        Route::get('/officers/{id}', [\App\Http\Controllers\Api\WorkspaceController::class, 'officer']);
+        Route::get('/analytics', [\App\Http\Controllers\Api\WorkspaceController::class, 'analytics']);
+        Route::get('/generated-letters', [\App\Http\Controllers\Api\WorkspaceController::class, 'letters']);
+        Route::get('/audit-logs', [\App\Http\Controllers\Api\WorkspaceController::class, 'audit']);
         Route::get('/dashboard', [DirectoryController::class, 'dashboard']);
         Route::get('/metadata', [DirectoryController::class, 'metadata']);
         Route::get('/documents/{document}/download', [DirectoryController::class, 'download']);

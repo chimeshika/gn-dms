@@ -58,6 +58,83 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("React application workflows", () => {
+  it("retains officer form values while moving between steps", async () => {
+    sessionUser = admin;
+    window.history.replaceState({}, "", "/officers/create");
+    render(<App />);
+    const name = await screen.findByLabelText("Full name (English) *");
+    fireEvent.change(name, { target: { value: "Wizard Officer" } });
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Next" }).closest("form"),
+    );
+    await screen.findByLabelText("District *");
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(screen.getByLabelText("Full name (English) *")).toHaveValue(
+      "Wizard Officer",
+    );
+    expect(
+      requests.some(
+        (r) => r.method === "POST" && r.url === "/api/records/officers",
+      ),
+    ).toBe(false);
+  });
+  it("rejects unsupported uploads before sending a document", async () => {
+    sessionUser = admin;
+    window.history.replaceState({}, "", "/documents/upload");
+    render(<App />);
+    const input = await screen.findByLabelText("Choose document");
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["bad"], "script.html", { type: "text/html" })],
+      },
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "PDF, JPEG or PNG",
+    );
+    expect(
+      screen.getByRole("button", { name: "Upload Document" }),
+    ).toBeDisabled();
+    expect(
+      requests.some(
+        (r) => r.method === "POST" && r.url === "/api/records/documents",
+      ),
+    ).toBe(false);
+  });
+  it("shows persisted profile history and dependent records in separate tabs", async () => {
+    sessionUser = admin;
+    window.history.replaceState({}, "", "/officers/4");
+    handlers["/api/officers/4"] = () =>
+      reply({
+        id: 4,
+        full_name_en: "Example Officer",
+        nic_no: "1234",
+        service_status: "appointed",
+        service_histories: [
+          {
+            id: 1,
+            event_type: "transfer",
+            effective_date: "2025-01-01",
+            old_value: "Previous division",
+            new_value: "Current division",
+          },
+        ],
+        documents: [],
+        dependents: [
+          {
+            name: "Example Dependent",
+            relationship: "Child",
+            dob: "2012-01-01",
+          },
+        ],
+      });
+    render(<App />);
+    await screen.findByRole("heading", { name: /Example Officer/ });
+    fireEvent.click(screen.getByRole("tab", { name: "Service History" }));
+    expect(screen.getByText("Previous division")).toBeInTheDocument();
+    expect(screen.getByText("Current division")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Dependents" }));
+    expect(screen.getByText(/Example Dependent/)).toBeInTheDocument();
+  });
   it("shows the public homepage and registration link", async () => {
     render(<App />);
     expect(
@@ -79,7 +156,7 @@ describe("React application workflows", () => {
         422,
       );
     render(<App />);
-    await screen.findByRole("heading", { name: "Welcome back" });
+    await screen.findByRole("heading", { name: "Welcome to GN-POMS" });
     fireEvent.change(screen.getByLabelText("Email *"), {
       target: { value: "admin@example.test" },
     });
@@ -110,8 +187,9 @@ describe("React application workflows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await screen.findByRole("heading", { name: "Welcome, Test" });
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Test Admin").closest("summary"));
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
-    await screen.findByRole("heading", { name: "Welcome back" });
+    await screen.findByRole("heading", { name: "Welcome to GN-POMS" });
   });
   it("hides administrator actions for officers", async () => {
     sessionUser = { ...admin, role: "officer" };
@@ -162,7 +240,7 @@ describe("React application workflows", () => {
   });
   it("creates a batch and navigates to its details", async () => {
     sessionUser = admin;
-    window.history.replaceState({}, "", "/letters");
+    window.history.replaceState({}, "", "/letters/batches");
     const batch = {
       id: 7,
       name: "September appointments",

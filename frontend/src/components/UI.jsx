@@ -32,7 +32,7 @@ export function Heading({ title, description, children }) {
   return (
     <div className="page-heading">
       <div>
-        <p className="eyebrow">GN-DMS / WORKSPACE</p>
+        <p className="eyebrow">GN-POMS / WORKSPACE</p>
         <h1>{title}</h1>
         {description && <p className="muted">{description}</p>}
       </div>

@@ -25,7 +25,7 @@ class BatchController extends Controller
 
     private function authorizeBatch(Request $request, ?LetterBatch $batch = null): void
     {
-        abort_if($request->user()->isOfficer(), 403);
+        abort_if($request->user()->isOfficer() || $request->user()->isMinistryHead(), 403);
         if ($batch) {
             abort_unless(AccessScope::batches(LetterBatch::query(), $request->user())->whereKey($batch->id)->exists(), 404);
         }
@@ -34,6 +34,8 @@ class BatchController extends Controller
     private function authorizeLetter(Request $request, Letter $letter, bool $draft = false): void
     {
         $this->authorizeBatch($request, $letter->letterBatch);
+        AccessScope::officer($request->user(), $letter->officer_id);
+        abort_unless($request->user()->isMainAdmin() || (int) $letter->created_by === (int) $request->user()->id, 404);
         if ($draft) {
             abort_if($letter->status === LetterStatus::Final, 409, 'Finalized letters cannot be changed.');
         }
@@ -194,11 +196,16 @@ class BatchController extends Controller
 
     public function pdf(Request $request, Letter $letter)
     {
-        $this->authorizeLetter($request, $letter);
+        if ($request->user()->isOfficer()) {
+            AccessScope::officer($request->user(), $letter->officer_id);
+            abort_unless($letter->status === LetterStatus::Final, 404);
+        } else {
+            $this->authorizeLetter($request, $letter);
+        }
         $bytes = $letter->status === LetterStatus::Final && $letter->pdf_path
             ? Storage::disk('local')->get($letter->pdf_path) : $this->pdfs->render($letter);
 
-        return response($bytes, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="letter-'.$letter->id.'.pdf"']);
+        return response($bytes, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => ($request->boolean('download') ? 'attachment' : 'inline').'; filename="letter-'.$letter->id.'.pdf"']);
     }
 
     public function downloadBatch(Request $request, LetterBatch $batch)

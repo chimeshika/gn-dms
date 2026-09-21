@@ -2,8 +2,21 @@ export const resources = {
   officers: {
     title: "Officers",
     description: "Manage officer profiles and verify new registrations.",
-    columns: ["full_name_en", "nic_no", "current_grade", "service_status"],
+    columns: [
+      "id",
+      "full_name_en",
+      "nic_no",
+      "designation",
+      "ds_division",
+      "gn_division",
+      "current_grade",
+      "service_status",
+    ],
     fields: [
+      ["designation", "Designation"],
+      ["contact_email", "Email", "email"],
+      ["mobile_phone", "Mobile number"],
+      ["dependents", "Dependents", "dependents"],
       ["nic_no", "NIC number", "text", true],
       ["full_name_en", "Full name (English)", "text", true],
       ["full_name_si", "Full name (Sinhala)"],
@@ -38,6 +51,7 @@ export const resources = {
       ["officer_id", "Officer", "officers", true],
       ["document_type", "Document type", "document_types", true],
       ["ref_no", "Reference number"],
+      ["issuing_authority", "Issuing authority"],
       ["issue_date", "Issue date", "date", true],
       ["file", "PDF or image document", "file"],
     ],
@@ -74,7 +88,7 @@ export const resources = {
   users: {
     title: "Users",
     description: "Manage accounts, access levels, and account status.",
-    columns: ["name", "email", "role", "status"],
+    columns: ["name", "email", "role", "ds_division", "status", "last_login"],
     fields: [
       ["name", "Full name", "text", true],
       ["email", "Email", "email", true],

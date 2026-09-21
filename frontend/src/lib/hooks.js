@@ -8,6 +8,10 @@ export function useApi(path, revision = 0) {
     error: null,
   });
   useEffect(() => {
+    if (!path) {
+      setState({ data: null, loading: false, error: null });
+      return;
+    }
     const controller = new AbortController();
     setState({ data: null, loading: true, error: null });
     api(path, { signal: controller.signal })
